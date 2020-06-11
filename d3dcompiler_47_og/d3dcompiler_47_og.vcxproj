@@ -148,45 +148,6 @@
       <ModuleDefinitionFile>d3dcompiler_47_og.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClCompile Include="API_Console.cpp" />
-    <ClCompile Include="ccBattleFunctions.cpp" />
-    <ClCompile Include="ccCharacterFunctions.cpp" />
-    <ClCompile Include="ccBossIAFunctions.cpp" />
-    <ClCompile Include="ccGameProperties.cpp" />
-    <ClCompile Include="ccGeneralGameFunctions.cpp" />
-    <ClCompile Include="ccMain.cpp" />
-    <ClCompile Include="ccMemoryFunctions.cpp" />
-    <ClCompile Include="ccPlayer.cpp" />
-    <ClCompile Include="d3dcompiler_47_og.cpp" />
-    <ClCompile Include="HookFunctions.cpp" />
-    <ClCompile Include="LuaHook.cpp" />
-    <ClCompile Include="LuaHook_Commands.cpp" />
-    <ClCompile Include="MultiMatch.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="d3dcompiler_47_og.def" />
-    <MASM Include="d3dcompiler_47_og_asm.asm">
-      <FileType>Document</FileType>
-    </MASM>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="API_Console.h" />
-    <ClInclude Include="ccBattleFunctions.h" />
-    <ClInclude Include="ccCharacterFunctions.h" />
-    <ClInclude Include="ccBossIAFunctions.h" />
-    <ClInclude Include="ccGameProperties.h" />
-    <ClInclude Include="ccGeneralGameFunctions.h" />
-    <ClInclude Include="ccMain.h" />
-    <ClInclude Include="ccMemoryFunctions.h" />
-    <ClInclude Include="ccPlayer.h" />
-    <ClInclude Include="d3dcompiler_47_og.h" />
-    <ClInclude Include="HookFunctions.h" />
-    <ClInclude Include="LuaHook.h" />
-    <ClInclude Include="LuaHook_Commands.h" />
-    <ClInclude Include="MultiMatch.h" />
-    <ClInclude Include="old_ccPlayer.h" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
     <Import Project="$(VCTargetsPath)\BuildCustomizations\masm.targets" />
