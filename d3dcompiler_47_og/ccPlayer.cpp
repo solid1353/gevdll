@@ -21,6 +21,7 @@
 #include "LuaHook_Commands.h"
 #include "ccBattleInputs.h"
 #pragma endregion
+// ToDo: throws
 #pragma region Character Imports
 // 1
 #include "c1CMN.h"
@@ -280,164 +281,176 @@ int timer = 300;
 int etimeflag = 0;
 int etimer = 300;
 
-
 void ccPlayer::Start()
 {
 	// Currently this function does nothing.
 }
 
+Players get_enemy_player_id(const Players player) {
+	return player == Player1 ? Player2 : player == Player2 ? Player1 : throw "Invalid Player Id";
+}
+
+void process_timer(const Players player) {
+	if (player == Player1)
+	{
+		if (timer == 0)
+			timeflag = 0;
+		else
+			timer--;
+	}
+	if (player == Player2)
+	{
+		if (etimer == 0)
+			etimeflag = 0;
+		else
+			etimer--;
+	}
+}
+
+void ccPlayer::disable_armor_break(uintptr_t player_info, uintptr_t player_status) {
+	SetPlayerFloatProperty(player_info, player_status, "armor", 45.0f);
+}
+
+void ccPlayer::perfect_cancel(uintptr_t player_info, uintptr_t player_status) {
+	const auto chakra = GetPlayerFloatProperty(player_info, player_status, "chakra");
+	for (auto stick_num = 0; stick_num < 2; stick_num++)
+	{
+		if (ccBattleInputs::stickBtns[stick_num] && chakra >= 10.0f && timeflag == 0)
+		{
+			SetPlayerStateProperty(player_info, player_status, 1);
+			SetPlayerFloatProperty(player_info, player_status, "chakra", chakra - 10.0f);
+			timeflag++;
+			timer = 15;
+		}
+	}
+}
+
+void ccPlayer::disable_storm_gauge(const Players player) {
+	SetStormGauge(player, 0.1f);
+}
+
+void ccPlayer::main_loop(const Players player) {
+	const auto player_status = GetPlayerStatus(player);
+	const auto player_info = GetPlayerInfo(player);
+	const auto enemy = get_enemy_player_id(player);
+	const auto enemy_status = GetPlayerStatus(enemy);
+	const auto enemy_info = GetPlayerInfo(enemy);
+	if (player_status == 0 || player_info == 0 || enemy_status == 0 || enemy_info == 0) throw "Unexpected Values";
+
+	// auto count = GetMatchCount();
+	disable_storm_gauge(player);
+	disable_storm_gauge(enemy);
+	disable_armor_break(player_info, player_status);
+	disable_armor_break(enemy_info, enemy_status);
+	perfect_cancel(player_info, player_status);
+	perfect_cancel(enemy_info, enemy_status);
+	
+	const auto health = GetPlayerFloatProperty(player_info, player_status, "health");
+	if (health <= 0) return;
+
+	process_timer(Player1);
+	process_timer(Player2);
+
+	if (ccGameProperties::isOnMenu() == false && prevFrame != ccGeneralGameFunctions::GetCurrentFrame()) {
+		DoCharacterLoop(GetPlayerIntProperty(player_info, player_status, "characode"), player);
+		ccBattleInputs::Loop(player);
+	}
+
+#pragma region trash
+	// ToDo: remove if unneeded
+	//if (x == 0) cout << hex << int(GetPlayerIntProperty(s, p, "characode")) << endl; Sleep(1000);..
+	//if (GetPlayerIntProperty(p, s, "attackid") == 151) { SetPlayerIntProperty(p, s, "attackid", 74); }
+	//cout << "Match Count: " << *(int*)count << endl; Sleep(1000);
+	//cout << "Storm Gauge: " << hex << *(float*)(int*)storm_gauge << endl; Sleep(1000);
+
+	// ToDo: remove if unneeded
+	// Sub Test Code
+	//Condense the if statements as Shalashaska commented.
+	/*float sub = GetPlayerFloatProperty(p, s, "sub");
+	//cout << "Flag: " << timeflag << endl;
+	if (GetPlayerIntProperty(p, s, "pstate") == 109 && timeflag == 0)
+	{
+		timeflag++;
+
+		timer = 3000;
+	}
+	if (GetPlayerIntProperty(p, s, "pstate") == 117 && timeflag == 0)
+	{
+		timeflag++;
+		timer = 3000;
+	}
+	if (GetPlayerIntProperty(p, s, "pstate") == 109)
+	{
+		timer = 3000;
+	}
+	if (GetPlayerIntProperty(p, s, "pstate") == 117)
+	{
+		timer = 3000;
+	}
+	if (timeflag !=0)
+	{
+		if (timer != 0) timer--;
+		cout << "Timer: " << timer << endl;
+		SetPlayerFloatProperty(p, s, "maxsub", sub);
+		SetPlayerFloatProperty(p, s, "health", h - 0.02f);
+		if (timer == 0)
+		{
+			timeflag = 0;
+		}
+	}
+	if (timer == 0) { SetPlayerFloatProperty(p, s, "maxsub", 100.0f); }
+	*/
+#pragma endregion
+}
+
+void ccPlayer::InitializePlayer(Players player) {
+	const auto player_info = GetPlayerInfo(player);
+	const auto player_status = GetPlayerStatus(player);
+
+	if (player_info != 0 && player_status != 0)
+	{
+		// auto enemyPlayer = getEnemyPlayerId(player);
+		// auto enemy = GetPlayerStatus(enemyPlayer);
+		// auto enemyStatus = GetPlayerInfo(enemyPlayer);
+		// int echaraid = GetPlayerIntProperty(enemyStatus, enemy, "characode");
+		// matchup[0] = charcode2str(charaid);
+		// matchup[1] = charcode2str(echaraid);
+		const auto character_id = GetPlayerIntProperty(player_info, player_status, "characode");
+		InitializeCharacter(character_id, player);
+		inputState = (new ccBattleInputs());
+	}
+}
+
 // This function is ran every frame all the time. 
 void ccPlayer::Loop()
 {
-	//cout << "GetModuleHandle(0): " << hex << int(GetModuleHandle(NULL)) << endl << "Module Base: " << hex << int(d3dcompiler_47_og::moduleBase) << endl << endl;
+	Input::UpdateKeys();
+	
+	// ToDo: remove if unneeded
+	// cout << "GetModuleHandle(0): " << hex << int(GetModuleHandle(NULL)) << endl << "Module Base: " << hex << int(d3dcompiler_47_og::moduleBase) << endl << endl;
 	// Get keyboard keys and update their state. This is useful for using keyboard hooks, like pressing a key to do a certain function.
 
-	Input::UpdateKeys();
-
-	// If the state of isOnBattle is different, then it means we entered/quitted a battle
+	// If the state of isOnBattle is different, then it means we entered/quit a battle
 	if (ccGameProperties::isOnBattle() != prevBattle)
 	{
 		prevBattle = ccGameProperties::isOnBattle();
 		if (prevBattle == 0)
 		{
 			// Code for when we quit a battle
-			for (int x = 0; x < 2; x++)
-			{
-				if (plMain[x] != 0)
-				{
-					DeleteCharacter(plMainId[x], x);
-				}
-			}
+			// ToDo: Test if we need to unload all 6 players. If we do, replace with for cycle
+			if (plMain[0] != 0) DeleteCharacter(plMainId[0], 0);
+			if (plMain[1] != 0) DeleteCharacter(plMainId[1], 1);
 		}
 		else
 		{
-			// Code for when we enter a battle
-			for (int x = 0; x < 2; x++)
-			{
-				uintptr_t s = GetPlayerStatus(x);
-				uintptr_t p = GetPlayerInfo(x);
-				uintptr_t es = GetPlayerStatus(1 - x);
-				uintptr_t ep = GetPlayerInfo(1 - x);
-
-				if (s != 0 && p != 0)
-				{
-					int charaid = GetPlayerIntProperty(p, s, "characode");
-					int echaraid = GetPlayerIntProperty(ep, es, "characode");
-					// matchup[0] = charcode2str(charaid);
-					// matchup[1] = charcode2str(echaraid);
-					InitializeCharacter(charaid, x);
-					inputState = (new ccBattleInputs());
-				}
-			}
+			InitializePlayer(Player1);
+			InitializePlayer(Player2);
 		}
 	}
 
-	// If we're not in a battle, stop the code
 	if (ccGameProperties::isOnBattle() == 0) return;
-
-	// This is the loop code for every player.
-	for (int x = 0; x < 2; x++)
-	{
-		// Get player x info
-		uintptr_t s = GetPlayerStatus(0);
-		uintptr_t p = GetPlayerInfo(0);
-		float storm_gauge = GetStormGauge(x);
-		int count = GetMatchCount();
-
-		//if (x == 0) cout << hex << int(GetPlayerIntProperty(s, p, "characode")) << endl; Sleep(1000);..
-		//if (GetPlayerIntProperty(p, s, "attackid") == 151) { SetPlayerIntProperty(p, s, "attackid", 74); }
-		//cout << "Match Count: " << *(int*)count << endl; Sleep(1000);
-		//cout << "Storm Gauge: " << hex << *(float*)(int*)storm_gauge << endl; Sleep(1000);
-
-		// Get enemy info
-		uintptr_t es = GetPlayerStatus(1 - x);
-		uintptr_t ep = GetPlayerInfo(1 - x);
-
-
-		// If pointers are null, stop the function.
-		if (s == 0 || p == 0) return;
-
-		// If pointers aren't null, let's check the health of the current player.
-		float h = GetPlayerFloatProperty(p, s, "health");
-		float c = GetPlayerFloatProperty(p, s, "chakra");
-		if (h <= 0) return; // If the health is 0 or less than 0, stop the code.
-
-		// This disables armor break
-		if (GetPlayerFloatProperty(p, s, "armor") < 45.0f) { SetPlayerFloatProperty(p, s, "armor", 45.0f); }
-		if (GetPlayerFloatProperty(ep, es, "armor") < 45.0f) { SetPlayerFloatProperty(ep, es, "armor", 45.0f); }
-
-		// Test Perfect Cancel
-		if (ccBattleInputs::stickBtns[0] && (GetPlayerFloatProperty(p, s, "chakra") >= 10.0f) && timeflag == 0)
-		{ SetPlayerStateProperty(p, s, 1), SetPlayerFloatProperty(p, s, "chakra", c - 10.0f), timeflag++, timer = 15; }
-		if (ccBattleInputs::stickBtns[0] && (GetPlayerFloatProperty(ep, es, "chakra") >= 10.0f) && etimeflag == 0)
-		{ SetPlayerStateProperty(ep, es, 1), SetPlayerFloatProperty(ep, es, "chakra", c - 10.0f), etimeflag++, etimer = 15; }
-		if (ccBattleInputs::stickBtns[1] && (GetPlayerFloatProperty(p, s, "chakra") >= 10.0f) && timeflag == 0)
-		{ SetPlayerStateProperty(p, s, 1), SetPlayerFloatProperty(p, s, "chakra", c - 10.0f), timeflag++, timer = 15; }
-		if (ccBattleInputs::stickBtns[1] && (GetPlayerFloatProperty(ep, es, "chakra") >= 10.0f) && etimeflag == 0)
-		{ SetPlayerStateProperty(ep, es, 1), SetPlayerFloatProperty(ep, es, "chakra", c - 10.0f), etimeflag++, etimer = 15; }
-
-		// Timer Setup
-#pragma region Timer
-		if (timeflag != 0)
-		{
-			if (timer != 0) timer--;
-			if (timer == 0)
-			{
-				timeflag = 0;
-			}
-		}
-		if (etimeflag != 0)
-		{
-			if (etimer != 0) etimer--;
-			if (etimer == 0)
-			{
-				etimeflag = 0;
-			}
-		}
-#pragma endregion
-		//Sub Test Code
-		//Condense the if statements as Shalashaska commented.
-		/*float sub = GetPlayerFloatProperty(p, s, "sub");
-		//cout << "Flag: " << timeflag << endl;
-		if (GetPlayerIntProperty(p, s, "pstate") == 109 && timeflag == 0)
-		{
-			timeflag++;
-
-			timer = 3000;
-		}
-		if (GetPlayerIntProperty(p, s, "pstate") == 117 && timeflag == 0)
-		{
-			timeflag++;
-			timer = 3000;
-		}
-		if (GetPlayerIntProperty(p, s, "pstate") == 109)
-		{
-			timer = 3000;
-		}
-		if (GetPlayerIntProperty(p, s, "pstate") == 117)
-		{
-			timer = 3000;
-		}
-		if (timeflag !=0)
-		{
-			if (timer != 0) timer--;
-			cout << "Timer: " << timer << endl;
-			SetPlayerFloatProperty(p, s, "maxsub", sub);
-			SetPlayerFloatProperty(p, s, "health", h - 0.02f);
-			if (timer == 0)
-			{
-				timeflag = 0;
-			}	
-		}
-		if (timer == 0) { SetPlayerFloatProperty(p, s, "maxsub", 100.0f); }
-		*/
-		// Custom player code in here
-		if (ccGameProperties::isOnMenu() == false && prevFrame != ccGeneralGameFunctions::GetCurrentFrame()) {
-			DoCharacterLoop(GetPlayerIntProperty(p, s, "characode"), x);
-			ccBattleInputs::Loop(x);
-		}
-	}
-	// Get next frame
+	main_loop(Player1);
+	main_loop(Player2);
 	prevFrame = ccGeneralGameFunctions::GetCurrentFrame();
 }
 
@@ -693,24 +706,24 @@ string ccPlayer::charcode2str(int charcode) {
 		case 0xD2: return "7kin";
 		case 0xD3: return "7yri";
 		case 0xD4: return "4mnr";
-	case 0xD5: return "biss";
-	case 0xD6: return "bmnk";
-	case 0xD7: return "7mmv";
-	case 0xD8: return "7mtk";
-	case 0xD9: return "abrt";
-	case 0xDA: return "8mms";
-	case 0xDB: return "8kin";
-	case 0xDC: return "8ino";
-	case 0xDD: return "8sik";
-	case 0xDE: return "8tyo";
-	case 0xDF: return "8kib";
-	case 0xE0: return "8sin";
-	case 0xE1: return "8roc";
-	case 0xE2: return "8ten";
-	case 0xE3: return "8knk";
-	case 0xE4: return "8tmr";
-	case 0xE5: return "8sai";
-	case 0xE6: return "8aem";
+		case 0xD5: return "biss";
+		case 0xD6: return "bmnk";
+		case 0xD7: return "7mmv";
+		case 0xD8: return "7mtk";
+		case 0xD9: return "abrt";
+		case 0xDA: return "8mms";
+		case 0xDB: return "8kin";
+		case 0xDC: return "8ino";
+		case 0xDD: return "8sik";
+		case 0xDE: return "8tyo";
+		case 0xDF: return "8kib";
+		case 0xE0: return "8sin";
+		case 0xE1: return "8roc";
+		case 0xE2: return "8ten";
+		case 0xE3: return "8knk";
+		case 0xE4: return "8tmr";
+		case 0xE5: return "8sai";
+		case 0xE6: return "8aem";
 	}
 }
 void ccPlayer::SetTimerValue(int timerValue, int maxTimer, bool value) {
@@ -748,15 +761,15 @@ uintptr_t ccPlayer::GetPlayerLSCostPointer(uintptr_t p) {
 	p3 = p2 + 0x10;
 	return !(p3 == 0) ? p3 : 0;
 }
-uintptr_t ccPlayer::GetPlayerStatus(int n)
+uintptr_t ccPlayer::GetPlayerStatus(int player)
 {
 	// Initialize pointers and the core offset
 	uintptr_t p1 = 0, p2 = 0, p3 = 0, p4 = 0;
 	uintptr_t mb_offset = d3dcompiler_47_og::moduleBase - 0xC00 + 0x161B738;
 	vector<uintptr_t> ptrs, offsets;
 
-	// Depending on whether "n" is set to 1 or not will change which offsets we use
-	switch (n)
+	// Depending on whether "player" is set to 1 or not will change which offsets we use
+	switch (player)
 	{
 		case 1: offsets = { mb_offset, 0x20, 0x90 }; break;
 		case 2: offsets = { mb_offset, 0x20, 0x08 }; break;
@@ -785,41 +798,39 @@ uintptr_t ccPlayer::GetPlayerInfo(int n)
 	return c + 0x70;
 }
 
-int ccPlayer::GetPlayerStatusNumber(uintptr_t s) { return LoopForNum(2, s, ccPlayer::GetPlayerStatus); }
-int ccPlayer::GetPlayerInfoNumber(uintptr_t p) { return LoopForNum(2, p, ccPlayer::GetPlayerInfo); }
-
-
+int ccPlayer::GetPlayerStatusNumber(uintptr_t s) { return LoopForNum(2, s, GetPlayerStatus); }
+int ccPlayer::GetPlayerInfoNumber(uintptr_t p) { return LoopForNum(2, p, GetPlayerInfo); }
 
 // The function below gets a float pointer from the player.
 float* ccPlayer::GetPlayerFloatPointer(uintptr_t p, uintptr_t s, char* prop)
 {
 	float* result;
 
-	if (s == 0 || p == 0) return 0;
+	if (s == 0 || p == 0) return nullptr;
 
 	switch (ccGameProperties::str2int(prop))
 	{
-		case ccPlayer::str2int("posx"): result = (float*)(p + 0x00); break;
-		case ccPlayer::str2int("posz"): result = (float*)(p + 0x04); break;
-		case ccPlayer::str2int("posy"): result = (float*)(p + 0x08); break;
-		case ccPlayer::str2int("health"): result = (float*)(s + 0x00); break;
-		case ccPlayer::str2int("maxhealth"): result = (float*)(s + 0x04); break;
-		case ccPlayer::str2int("chakra"): result = (float*)(s + 0x08); break;
-		case ccPlayer::str2int("maxchakra"): result = (float*)(s + 0x0C); break;
-		case ccPlayer::str2int("sub"): result = (float*)(s + 0x10); break;
-		case ccPlayer::str2int("maxsub"): result = (float*)(s + 0x14); break;
-		case ccPlayer::str2int("armor"): result = (float*)(s + 0x20); break;
-		case ccPlayer::str2int("maxarmor"): result = (float*)(s + 0x24); break;
-		case ccPlayer::str2int("gravity"): result = (float*)(p + 0xE8); break;
-		case ccPlayer::str2int("zmomentum"): result = (float*)(p + 0xEC); break;
-		case ccPlayer::str2int("modelscale"): result = (float*)(p + 0x190); break;
-		case ccPlayer::str2int("anmspeed"): result = (float*)(p + 0x1A0); break;
-		case ccPlayer::str2int("movespeed"): result = (float*)(p + 0x14104); break;
-		case ccPlayer::str2int("guard"): result = (float*)(p + 0x149F0); break;
-		case ccPlayer::str2int("maxguard"): result = (float*)(p + 0x149F4); break;
+		case str2int("posx"): return (float*)(p + 0x00);
+		case str2int("posz"): return (float*)(p + 0x04);
+		case str2int("posy"): return (float*)(p + 0x08);
+		case str2int("health"): return (float*)(s + 0x00);
+		case str2int("maxhealth"): return (float*)(s + 0x04);
+		case str2int("chakra"): return (float*)(s + 0x08);
+		case str2int("maxchakra"): return (float*)(s + 0x0C);
+		case str2int("sub"): return (float*)(s + 0x10);
+		case str2int("maxsub"): return (float*)(s + 0x14);
+		case str2int("armor"): return (float*)(s + 0x20);
+		case str2int("maxarmor"): return (float*)(s + 0x24);
+		case str2int("gravity"): return (float*)(p + 0xE8);
+		case str2int("zmomentum"): return (float*)(p + 0xEC);
+		case str2int("modelscale"): return (float*)(p + 0x190);
+		case str2int("anmspeed"): return (float*)(p + 0x1A0);
+		case str2int("movespeed"): return (float*)(p + 0x14104);
+		case str2int("guard"): return (float*)(p + 0x149F0);
+		case str2int("maxguard"): return (float*)(p + 0x149F4);
+		// ToDo: message
+		default: throw "Unexpected";
 	}
-
-	return result;
 }
 
 float ccPlayer::GetPlayerFloatProperty(uintptr_t p, uintptr_t s, char* prop)

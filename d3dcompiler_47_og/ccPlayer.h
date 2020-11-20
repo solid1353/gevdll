@@ -7,6 +7,16 @@
 
 using namespace std;
 
+enum Players
+{
+	Player1, //0
+	Player2, //1
+	Player1_Support1, //so on
+	Player1_Support2,
+	Player2_Support1,
+	Player2_Support2,
+};
+
 namespace moddingApi
 {
 	class ccPlayer
@@ -15,55 +25,61 @@ namespace moddingApi
 		static uintptr_t plMain[6];
 		static int plMainId[6];
 		// static vector<string> matchup;
-		static void ccPlayer::Start();
-		static void ccPlayer::Loop();
+		static void Start();
+		static void Loop();
 
-		static void ccPlayer::InitializeCharacter(int c, int plNum);
-		static void ccPlayer::DeleteCharacter(int c, int plNum);
-		static void ccPlayer::DoCharacterLoop(int c, int plNum);
+		static void InitializeCharacter(int c, int plNum);
+		static void DeleteCharacter(int c, int plNum);
+		static void DoCharacterLoop(int c, int plNum);
 
-		static void ccPlayer::GetGamepadState(int n, std::vector<bool> inputs);
+		static void GetGamepadState(int n, std::vector<bool> inputs);
 
-		static uintptr_t ccPlayer::GetPlayerStatus(int n);
-		static uintptr_t ccPlayer::GetPlayerInfo(int n);
-		static uintptr_t ccPlayer::GetSystemInfo();
-		static uintptr_t ccPlayer::GetPlayerLSCostPointer(uintptr_t p);
-		static void ccPlayer::SetPlayerLSCost(uintptr_t p, float value);
-		static int ccPlayer::GetPlayerStatusNumber(uintptr_t s);
-		static int ccPlayer::GetPlayerInfoNumber(uintptr_t s);
+		static uintptr_t GetPlayerStatus(int player);
+		static uintptr_t GetPlayerInfo(int n);
+		static uintptr_t GetSystemInfo();
+		static uintptr_t GetPlayerLSCostPointer(uintptr_t p);
+		static void SetPlayerLSCost(uintptr_t p, float value);
+		static int GetPlayerStatusNumber(uintptr_t s);
+		static int GetPlayerInfoNumber(uintptr_t s);
 
-		static uintptr_t ccPlayer::GetStormPointer(int n);
-		static float ccPlayer::GetStormGauge(int n);
-		static void ccPlayer::SetStormGauge(int n, float value);
-		static uintptr_t ccPlayer::GetMatchPointer();
-		static int ccPlayer::GetMatchCount();
-		static void ccPlayer::SetMatchCount(int value);
+		static uintptr_t GetStormPointer(int n);
+		static float GetStormGauge(int n);
+		static void SetStormGauge(int n, float value);
+		static uintptr_t GetMatchPointer();
+		static int GetMatchCount();
+		static void SetMatchCount(int value);
 
-		static int* ccPlayer::GetPlayerIntPointer(uintptr_t p, uintptr_t s, char* prop);
-		static int ccPlayer::GetPlayerIntProperty(uintptr_t p, uintptr_t s, char* prop);
-		static void ccPlayer::SetPlayerIntProperty(uintptr_t p, uintptr_t s, char* prop, int value);
-		static void ccPlayer::SetPlayerStatePropertyEasy(uintptr_t p, uintptr_t s, char* prop);
-		static void ccPlayer::SetPlayerStateProperty(uintptr_t p, uintptr_t s, int prop);
+		static int* GetPlayerIntPointer(uintptr_t p, uintptr_t s, char* prop);
+		static int GetPlayerIntProperty(uintptr_t p, uintptr_t s, char* prop);
+		static void SetPlayerIntProperty(uintptr_t p, uintptr_t s, char* prop, int value);
+		static void SetPlayerStatePropertyEasy(uintptr_t p, uintptr_t s, char* prop);
+		static void SetPlayerStateProperty(uintptr_t p, uintptr_t s, int prop);
 
-		static float* ccPlayer::GetPlayerFloatPointer(uintptr_t p, uintptr_t s, char* prop);
-		static float ccPlayer::GetPlayerFloatProperty(uintptr_t p, uintptr_t s, char* prop);
-		static void ccPlayer::SetPlayerFloatProperty(uintptr_t p, uintptr_t s, char* prop, float value);
+		static float* GetPlayerFloatPointer(uintptr_t p, uintptr_t s, char* prop);
+		static float GetPlayerFloatProperty(uintptr_t p, uintptr_t s, char* prop);
+		static void SetPlayerFloatProperty(uintptr_t p, uintptr_t s, char* prop, float value);
 
-		static Vector3 ccPlayer::GetPlayerPosition(uintptr_t p, uintptr_t s);
-		static float ccPlayer::GetPlayerDistance(uintptr_t p, uintptr_t s, uintptr_t ep, uintptr_t es);
+		static Vector3 GetPlayerPosition(uintptr_t p, uintptr_t s);
+		static float GetPlayerDistance(uintptr_t p, uintptr_t s, uintptr_t ep, uintptr_t es);
 
-		static string ccPlayer::charcode2str(int charcode);
-		static int ccPlayer::Timer(int timeAmt);
-		static void ccPlayer::SetTimerValue(int timerValue, int maxTimer, bool value);
+		static string charcode2str(int charcode);
+		static int Timer(int timeAmt);
+		static void SetTimerValue(int timerValue, int maxTimer, bool value);
 
 		// Placeholders, change order when functions are done
-		static int ccPlayer::GetCanDoJutsuChakra(uintptr_t p, uintptr_t s);
-		static int ccPlayer::GetAwakenedState(uintptr_t p, uintptr_t s);
+		static int GetCanDoJutsuChakra(uintptr_t p, uintptr_t s);
+		static int GetAwakenedState(uintptr_t p, uintptr_t s);
+
+		static void InitializePlayer(Players player);
+		static void disable_armor_break(uintptr_t player_info, uintptr_t player_status);
+		static void perfect_cancel(uintptr_t player_info, uintptr_t player_status);
+		static void disable_storm_gauge(Players player);
+		static void main_loop(Players player);
 	private:
 		//int prevFrame = 0;
 		//int prevBattle = 0;
-		static vector<uintptr_t> ccPlayer::memcpy_verify(vector<uintptr_t> ptrs, vector<uintptr_t> offsets, size_t size);
-		static int ccPlayer::LoopForNum(int loopAmt, uintptr_t compare, uintptr_t(*f)(int));
-		static constexpr unsigned int ccPlayer::str2int(const char* str, int h);
+		static vector<uintptr_t> memcpy_verify(vector<uintptr_t> ptrs, vector<uintptr_t> offsets, size_t size);
+		static int LoopForNum(int loopAmt, uintptr_t compare, uintptr_t(*f)(int));
+		static constexpr unsigned int str2int(const char* str, int h);
 	};
 }
